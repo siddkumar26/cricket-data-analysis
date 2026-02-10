@@ -26,7 +26,7 @@ BEGIN
 	DECLARE @start_time DATETIME, @end_time DATETIME
 	SET @start_time = GETDATE();
 	BEGIN TRY
-		    PRINT '================================================';
+		PRINT '================================================';
         PRINT 'Loading Silver Layer';
         PRINT '================================================';
 
@@ -34,52 +34,96 @@ BEGIN
 		TRUNCATE TABLE silver.deliveries_updated_ipl_upto_2025;
 		PRINT '>> Inserting Data Into: silver.deliveries_updated_ipl_upto_2025';
 
-		INSERT INTO silver.deliveries_updated_ipl_upto_2025 (
-			ball_id,
-			match_id,
-			[match_date],
+		WITH cte_fix_10th_ball AS (
+		SELECT
+			matchId AS match_id,
+			[date] AS match_date,
 			inning,
-			over_ball,
-			[over_number],
-			ball_in_over,
+			[over] AS over_number,
+			ball AS ball_in_over,
+			ROW_NUMBER() OVER (PARTITION BY matchId, inning, [over], ball ORDER BY over_ball ASC) as ball_instance_rank,
+			TRIM(batting_team) as batting_team,
+			TRIM(bowling_team) as bowling_team,
+			TRIM(batsman) as batsman,
+			TRIM(non_striker) as non_striker,
+			TRIM(bowler) as bowler,
+			batsman_runs,
+			extras,
+			ISNULL(CAST(CAST(isWide AS FLOAT) AS INT),0) as wide_runs,
+			ISNULL(CAST(CAST(isNoBall AS FLOAT) AS INT),0) as no_ball_runs,
+			ISNULL(CAST(CAST(Byes AS FLOAT) AS INT),0) as byes,
+			ISNULL(CAST(CAST(LegByes AS FLOAT) AS INT),0) as leg_byes,
+			ISNULL(CAST(CAST(Penalty AS FLOAT) AS INT),0) as penalty_runs,
+			TRIM(dismissal_kind) as dismissal_kind,
+			TRIM(player_dismissed) as player_dismissed
+		FROM bronze.deliveries_updated_ipl_upto_2025
+		)
+
+		INSERT INTO silver.deliveries_updated_ipl_upto_2025 (
+		ball_id,           
+		match_id,      
+		[match_date],      
+		inning,            
+		over_ball,          
+		[over_number],     
+		ball_in_over,       
+		batting_team,       
+		bowling_team,       
+		batter,             
+		non_striker,       
+		bowler,            
+		batter_runs,        
+		extras,             
+		wide_runs,          
+		no_ball_runs,       
+		byes_runs,          
+		leg_byes_runs,      
+		penalty_runs,       
+		dismissal_kind,
+		player_dismissed
+		)
+		SELECT
+			ROW_NUMBER() OVER (ORDER BY match_id, inning, [over_number], 
+			CASE 
+				WHEN ball_in_over = 1 AND ball_instance_rank = 2 
+					THEN 10 
+					ELSE ball_in_over 
+			END ASC) ball_id,
+			match_id,
+			match_date,
+			inning,
+			CONCAT(
+			CAST(over_number AS VARCHAR(10)), '.', CAST(CASE 
+				WHEN ball_in_over = 1 AND ball_instance_rank = 2 THEN 10
+				ELSE ball_in_over 
+				END AS VARCHAR(10))
+			)new_over_ball,
+			over_number,
+			CASE 
+				WHEN ball_in_over = 1 AND ball_instance_rank = 2 
+					THEN 10
+					ELSE ball_in_over 
+			END new_ball_in_over,
 			batting_team,
 			bowling_team,
-			batter,
+			batsman,
 			non_striker,
 			bowler,
-			batter_runs,
+			batsman_runs,
 			extras,
 			wide_runs,
 			no_ball_runs,
-			byes_runs,
-			leg_byes_runs,
+			byes,
+			leg_byes,
 			penalty_runs,
 			dismissal_kind,
 			player_dismissed
-		)
-		SELECT
-			ROW_NUMBER() OVER (ORDER BY matchId, inning, over_ball ASC) ball_id,
-			matchId match_id,
-			[date] match_date,
-			inning,
-			over_ball,
-			[over] over_number,
-			ball ball_in_over,
-			TRIM(batting_team) batting_team,
-			TRIM(bowling_team) bowling_team,
-			TRIM(batsman) batsman,
-			TRIM(non_striker) non_striker,
-			TRIM(bowler) bowler,
-			batsman_runs,
-			extras,
-			ISNULL(CAST(CAST(isWide AS FLOAT) AS INT),0) wide_runs,
-			ISNULL(CAST(CAST(isNoBall AS FLOAT) AS INT),0) no_ball_runs,
-			ISNULL(CAST(CAST(Byes AS FLOAT) AS INT),0) byes,
-			ISNULL(CAST(CAST(LegByes AS FLOAT) AS INT),0) leg_byes,
-			ISNULL(CAST(CAST(Penalty AS FLOAT) AS INT),0) penalty_runs,
-			TRIM(dismissal_kind) dismissal_kind,
-			TRIM(player_dismissed) player_dismissed
-		FROM bronze.deliveries_updated_ipl_upto_2025
+		FROM cte_fix_10th_ball
+		ORDER BY 
+			match_id, 
+			inning, 
+			over_number, 
+			new_ball_in_over ASC;
 
 		PRINT '>> Truncating Table: silver.matches_updated_ipl_upto_2025';
 		TRUNCATE TABLE silver.matches_updated_ipl_upto_2025;
