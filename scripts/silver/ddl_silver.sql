@@ -23,7 +23,7 @@ CREATE TABLE silver.deliveries_updated_ipl_upto_2025 (
     match_id INT,
     [match_date] DATE,
     inning INT,
-    over_ball FLOAT,
+    over_ball NVARCHAR(10),
     [over_number] INT,
     ball_in_over INT,
     batting_team NVARCHAR(50),
@@ -92,27 +92,3 @@ CREATE TABLE silver.matches_updated_ipl_upto_2025 (
     CONSTRAINT CK_DLS_Method_Values CHECK (dls_method IN ('D/L', 'No D/L')),
     CONSTRAINT CK_Season_Format CHECK (season LIKE '[0-9][0-9][0-9][0-9]%' )
 );
-
--- Create basic info data table
-IF OBJECT_ID('silver.batting_stats', 'U') IS NOT NULL
-    DROP TABLE silver.batting_stats;
-GO
--- Creating new table for batting statistics
-CREATE TABLE silver.batting_stats (
-    player_id INT,
-    player_name NVARCHAR(50),
-    matches_played INT,
-    not_outs INT,
-    runs_scored INT,
-    highest_score INT,
-    batting_average INT,
-    batting_strike_rate INT,
-    balls_faced INT,
-    centuries INT,
-    fifties INT,
-    thirties INT,
-    twenties INT,
-    fours INT,
-    sixes INT,
-    catches INT
-)
