@@ -44,5 +44,4 @@ The goal layer has the following views:
 - Matches: Match overview information
 - Batter-statistics: Create statistics on how each batter performed in each match
 - Bowler-statistics: Create statistics on how each bowler performed in each match
-- Match-Phases: To evaluate how each player performs in different phases of play: Powerplay, Middle Overs and Death Overs
-- 
+- Match-Phases: To evaluate how each player performs in different phases of play: Powerplay, Middle Overs, and Death Overs
