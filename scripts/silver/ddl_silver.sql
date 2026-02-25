@@ -12,83 +12,132 @@ Script Purpose:
 ===============================================================================
 */
 
-
 -- Create Ball By Ball data table
-IF OBJECT_ID('silver.deliveries_updated_ipl_upto_2025', 'U') IS NOT NULL
-    DROP TABLE silver.deliveries_updated_ipl_upto_2025;
+IF OBJECT_ID('silver.deliveries', 'U') IS NOT NULL
+    DROP TABLE silver.deliveries;
 GO
 
-CREATE TABLE silver.deliveries_updated_ipl_upto_2025 (
-    ball_id INT NOT NULL,
+CREATE TABLE silver.deliveries (
+    delivery_id INT NOT NULL,
     match_id INT,
-    [match_date] DATE,
-    inning INT,
-    over_ball NVARCHAR(10),
-    [over_number] INT,
-    ball_in_over INT,
-    batting_team NVARCHAR(50),
-    bowling_team NVARCHAR(50),
-    batter NVARCHAR(50),
-    non_striker NVARCHAR(50),
-    bowler NVARCHAR(50),
-    batter_runs INT,
-    extras INT,
-    wide_runs INT,
-    no_ball_runs INT,
-    byes_runs INT,
-    leg_byes_runs INT,
-    penalty_runs INT,
-    dismissal_kind NVARCHAR(50),
-    player_dismissed NVARCHAR(50),
+    inning_number INT,
+    phase_of_match NVARCHAR(50),
+    overs NVARCHAR(50),
+    over_number INT,
+    balls_bowled_this_over INT,
+    current_run_rate FLOAT,
+    required_run_rate FLOAT,
+    cumulative_team_runs INT,
+    cumulative_wickets_lost INT,
+    bowling_team_id INT,
+    bowler_id INT,
+    batting_team_id INT,
+    batter_id INT,
+    batting_position INT,
+    batter_entry_score INT,
+    batter_entry_wickets INT,
+    non_striker_id INT,
+    cumulative_batter_runs INT,
+    cumulative_balls_faced INT,
+    runs_off_bat INT,
+    runs_from_extras INT,
+    runs_from_wides INT,
+    runs_from_no_balls INT,
+    runs_from_byes INT,
+    runs_from_leg_byes INT,
+    runs_from_penalty INT,
+    is_dot_ball BIT,
+    is_four BIT,
+    is_six BIT,
+    is_boundary BIT,
+    is_wicket BIT,
+    is_bounce_back_ball BIT,
+    dismissal_type NVARCHAR(50),
+    player_dismissed_id INT,
     dwh_create_date DATETIME2 DEFAULT GETDATE(),
-    CONSTRAINT PK_Silver_Deliveries PRIMARY KEY CLUSTERED (ball_id)
+    CONSTRAINT PK_Silver_Deliveries PRIMARY KEY CLUSTERED (delivery_id)
 );
 
 -- Create basic info data table
-IF OBJECT_ID('silver.matches_updated_ipl_upto_2025', 'U') IS NOT NULL
-    DROP TABLE silver.matches_updated_ipl_upto_2025;
+IF OBJECT_ID('silver.matches', 'U') IS NOT NULL
+    DROP TABLE silver.matches;
 GO
 
--- Removing date1 and date2 as they hold no useful information
--- Removing Event as it is all IPL
--- Removing balls per over as its always 6
-CREATE TABLE silver.matches_updated_ipl_upto_2025 (
-    -- Primary Key
-    match_id INT NOT NULL,
-
-    -- Season Number
-    season NVARCHAR(20),
-
+CREATE TABLE silver.matches (
     match_number INT,
-    [match_date] DATE,
-    venue NVARCHAR(100),
-    city NVARCHAR(50),
-
-    first_team NVARCHAR(50),
-    second_team NVARCHAR(50),
-
-    outcome NVARCHAR(50),
-    toss_winner NVARCHAR(50),
+    match_id INT NOT NULL,
+    season_year NVARCHAR(50),
+    match_date DATE,
+    venue_id INT,
+    team_1_id INT,
+    team_2_id INT,
+    toss_winner_id INT,
     toss_decision NVARCHAR(50),
-    match_winner NVARCHAR(50),
-    player_of_match NVARCHAR(50),
-
-    winner_runs INT,
-    winner_wickets INT,
-
-    umpire_1 NVARCHAR(50),
-    umpire_2 NVARCHAR(50),
-    reserve_umpire NVARCHAR(50),
-    tv_umpire NVARCHAR(50),
-    match_referee NVARCHAR(50),
-
-    dls_method NVARCHAR(20),
-    neutral_venue NVARCHAR(10),
+    match_winner INT,
+    winning_margin NVARCHAR(50),
+    player_of_match INT,
+    is_dls_match BIT,
+    team_1_score INT,
+    team_1_wickets INT,
+    team_2_score INT,
+    team_2_wickets INT,
+    is_super_over BIT,
+    team_1_super_over_score INT,
+    team_1_super_over_wickets INT,
+    team_2_super_over_score INT,
+    team_2_super_over_wickets INT,
     dwh_create_date DATETIME2 DEFAULT GETDATE(),
+    CONSTRAINT PK_Silver_Matches PRIMARY KEY CLUSTERED (match_id)
+);
 
+-- Create players table
+IF OBJECT_ID('silver.players', 'U') IS NOT NULL
+    DROP TABLE silver.players;
+GO
 
-    CONSTRAINT PK_Silver_Matches PRIMARY KEY CLUSTERED (match_id),
-    CONSTRAINT CK_Neutral_Venue_Values CHECK (neutral_venue IN ('Yes', 'No')),
-    CONSTRAINT CK_DLS_Method_Values CHECK (dls_method IN ('D/L', 'No D/L')),
-    CONSTRAINT CK_Season_Format CHECK (season LIKE '[0-9][0-9][0-9][0-9]%' )
+CREATE TABLE silver.players (
+    player_id INT NOT NULL,
+    player_name NVARCHAR(50),
+    dwh_create_date DATETIME2 DEFAULT GETDATE(),
+    CONSTRAINT PK_Silver_Players PRIMARY KEY CLUSTERED (player_id)
+);
+
+-- Create Teams table
+IF OBJECT_ID('silver.teams', 'U') IS NOT NULL
+    DROP TABLE silver.teams;
+GO
+
+CREATE TABLE silver.teams (
+    team_id INT NOT NULL,
+    team_name NVARCHAR(50) NOT NULL,
+    dwh_create_date DATETIME2 DEFAULT GETDATE(),
+    CONSTRAINT PK_Silver_Teams PRIMARY KEY CLUSTERED (team_id, team_name)
+);
+
+-- Create Venues table
+IF OBJECT_ID('silver.venues', 'U') IS NOT NULL
+    DROP TABLE silver.venues;
+GO
+
+CREATE TABLE silver.venues (
+    venue_id INT NOT NULL,
+    venue_name NVARCHAR(100),
+    venue_city NVARCHAR(50),
+    dwh_create_date DATETIME2 DEFAULT GETDATE(),
+    CONSTRAINT PK_Silver_Venues PRIMARY KEY CLUSTERED (venue_id)
+);
+
+-- Create Venues Lookup table
+IF OBJECT_ID('silver.venues_lookup', 'U') IS NOT NULL
+    DROP TABLE silver.venues_lookup;
+GO
+
+CREATE TABLE silver.venues_lookup (
+    lookup_id INT NOT NULL,
+    venue_name NVARCHAR(100),
+    new_venue_name NVARCHAR(100),
+    venue_city NVARCHAR(50),
+    new_venue_city NVARCHAR(100),
+    dwh_create_date DATETIME2 DEFAULT GETDATE(),
+    CONSTRAINT PK_Silver_Venues_Lookup PRIMARY KEY CLUSTERED (lookup_id)
 );
