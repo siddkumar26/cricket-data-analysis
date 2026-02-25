@@ -45,3 +45,41 @@ The goal layer has the following views:
 - Batter-statistics: Create statistics on how each batter performed in each match
 - Bowler-statistics: Create statistics on how each bowler performed in each match
 - Match-Phases: To evaluate how each player performs in different phases of play: Powerplay, Middle Overs, and Death Overs
+
+## Test Plan
+Below is the test plan I will execute after loading my data into the silver layer before I proceed to the gold layer. This will ensure data cleansing has been completed successfully and avoid any issues in the future for data analysis.
+
+| Test ID | Test Table | Column Being Tested | Test Description | Expected Outcome | Test Category |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| TM-01 | silver.teams | team_id, team_name | Verify composite primary key uniqueness. | 0 duplicate combinations of team_id + team_name. | Uniqueness |
+| TM-02 | silver.teams | team_name | Ensure completeness of team names. | 0 rows with NULL or empty team_name. | Completeness |
+| TM-03 | silver.teams | team_id | Verify hardcoded mapping logic for franchises. | "Delhi Capitals" and "Delhi Daredevils" both strictly return team_id = 2. | Business Logic |
+| PL-01 | silver.players | player_id | Verify primary key uniqueness. | 0 duplicate player_id values. | Uniqueness |
+| PL-02 | silver.players | player_name | Ensure completeness of extracted player names. | 0 rows with NULL or empty string player_name. | Completeness |
+| VL-01 | silver.venues_lookup | lookup_id | Verify primary key uniqueness. | 0 duplicate lookup_id values. | Uniqueness |
+| VL-02 | silver.venues_lookup | new_venue_name | Verify legacy stadium name standardization. | Legacy names (e.g., '%Feroz Shah Kotla%') output strictly as their mapped new_venue_name. | Business Logic |
+| VL-03 | silver.venues_lookup | venue_name | Verify deduplication ROW_NUMBER() logic. | 0 duplicate raw venue_name entries. | Uniqueness |
+| VN-01 | silver.venues | venue_id | Verify primary key uniqueness. | 0 duplicate venue_id values. | Uniqueness |
+| VN-02 | silver.venues | venue_city | Ensure no venues slipped through without a city assigned. | 0 rows with NULL venue_city. | Completeness |
+| MA-01 | silver.matches | match_id | Verify granularity / Primary Key uniqueness. | 0 duplicate match_id values. | Uniqueness |
+| MA-02 | silver.matches | Row Count | Reconciliation: Compare row count to Bronze layer. | Total rows in silver.matches strictly equals total rows in bronze.matches | Volume / Reconciliation |
+| MA-03 | silver.matches | venue_id, team_1_id, team_2_id | Verify foreign key relationships to dimensions. | 0 rows with IDs that do not exist in their respective dimension tables. | Referential Integrity |
+| MA-04 | silver.matches | match_winner | The Rain Rule: Validate match winner handling. | If winning_margin IS NULL, match_winner MUST exactly equal 0. | Business Logic |
+| MA-05 | silver.matches | winning_margin | Verify concatenation logic. | String must end in ' runs', ' wickets', or be exactly NULL. | Business Logic |
+| MA-06 | silver.matches | is_dls_match | Validate DLS boolean generation. | Must strictly equal 1 if Bronze method was 'D/L', else 0. | Domain / Range |
+| MA-07 | silver.matches | team_1_score, team_2_score | Cross-Check: Verify match aggregate scores against deliveries. | team_1_score strictly equals MAX(cumulative_team_runs) for inning 1 in silver.deliveries. | Cross-Column Consistency |
+| MA-08 | silver.matches | team_1_super_over_score | Verify aggregate sum logic for Super Overs. | Total strictly equals sum of team 1 runs where inning_number > 2. | Business Logic |
+| DE-01 | silver.deliveries | delivery_id | Verify composite sorting generated a unique delivery key. | 0 duplicate delivery_id values. | Uniqueness |
+| DE-02 | silver.deliveries | Row Count | Reconciliation: Compare row count to Bronze layer. | Total rows in silver.deliveries strictly equals total rows in bronze.deliveries. | Volume / Reconciliation |
+| DE-03 | silver.deliveries | match_id | Verify linkage to Match parent table. | Every match_id must exist in silver.matches. | Referential Integrity |
+| DE-04 | silver.deliveries | batter_id, bowler_id | Verify linkage to Player dimension. | All populated IDs MUST exist in silver.players. | Referential Integrity |
+| DE-05 | silver.deliveries | Boolean Flags (is_dot_ball, is_four, is_six, etc.) | Validate boolean domain ranges. | All boolean flag columns MUST contain strictly 1 or 0 (no NULLs or other ints). | Domain / Range |
+| DE-06 | silver.deliveries | over_number | Validate cricket domain boundaries for overs. | Values MUST be between 0 and 19 (for standard innings). | Domain / Range |
+| DE-07 | silver.deliveries | cumulative_wickets_lost | Validate cricket domain boundaries for wickets. | Values MUST be between 0 and 10, and strictly non-decreasing within an inning. | Domain / Range |
+| DE-08 | silver.deliveries | is_boundary | Validate Cross-Column consistency for boundaries. | is_boundary = 1 ONLY IF (is_four = 1 OR is_six = 1). | Cross-Column Consistency |
+| DE-09 | silver.deliveries | is_dot_ball | Validate batter's perspective dot ball logic. | is_dot_ball = 1 ONLY when runs_off_bat = 0 AND runs_off_wides = 0. | Business Logic |
+| DE-10 | silver.deliveries | is_bounce_back_ball | Validate previous-ball window function (LAG). | Equals 1 ONLY if the preceding ball in the partition was a boundary (runs >= 4). | Business Logic |
+| DE-11 | silver.deliveries | phase_of_match | Validate powerplay/middle/death bucketing. | Over < 6 = 'powerplay'; Over 6-14 = 'middle_overs'; Over > 14 = 'death_overs'. | Business Logic |
+| DE-12 | silver.deliveries | required_run_rate | Validate RRR constraints (NULLing rules). | Strictly NULL for inning_number = 1 OR if is_dls_match = 'YES'. | Business Logic |
+| DE-13 | silver.deliveries | balls_bowled_this_over | Verify the "10th ball" anomaly fix logic. | Values should correctly reflect the ball_instance_rank modification. | Business Logic |
+| DE-14 | silver.deliveries | batter_entry_score | Validate entry score tracking via FIRST_VALUE. | Score must equal cumulative_team_runs minus runs off the current ball. | Business Logic |
