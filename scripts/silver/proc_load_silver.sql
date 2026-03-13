@@ -507,11 +507,11 @@ BEGIN
 			p.player_id AS player_of_match,
 			CASE WHEN m.method IS NULL THEN 0 ELSE 1 END AS is_dls,
     
-			agg.is_super_over,
 			agg.team_1_score,
 			agg.team_1_wickets,
 			agg.team_2_score,
 			agg.team_2_wickets,
+			agg.is_super_over,
 			agg.team_1_super_over_score,
 			agg.team_1_super_over_wickets,
 			agg.team_2_super_over_score,
