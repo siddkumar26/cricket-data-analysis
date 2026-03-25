@@ -35,19 +35,22 @@ My main goal is to provide data analytics flexibility in the future by providing
 - Deliveries: Enriched ball-by-ball information for data analysis, adding information such as CRR, RRR, and data analytics metrics, such as whether the previous ball was a boundary, the score when the batter entered the field, and their batting position.
 
 ### Gold Layer
-This layer will focus on converting the tables in Silver layers into views. I am using views since this provides flexibility in adding and removing fields without having to change the schema of a table. This also provides future compatibility, allowing me to change the schemas in the silver layer without impacting the end user who will be interacting with the information in the gold layer.
+My original plan was to use views, but with window functions, this resulted in an extremely long time for data selection. Thus, I will now create tables instead.
 
-The goal layer has the following views:
+The goal layer has the following tables:
 - Teams: To provide each team with a unique Team ID.
 - Players: To provide each player with a unique Player ID.
+- Venues: To provide each venue with a unique Venue ID.
 - Ball-by-Ball: Ball-by-ball information
 - Matches: Match overview information
-- Batter-statistics: Create statistics on how each batter performed in each match
-- Bowler-statistics: Create statistics on how each bowler performed in each match
-- Match-Phases: To evaluate how each player performs in different phases of play: Powerplay, Middle Overs, and Death Overs
+- Batter-statistics: Create statistics on how each batter performed in each over of each match
+- Bowler-statistics: Create statistics on how each bowler performed in each over of each match
+- Match-Benchmarks: Calculate the average for each over in a particular IPL season, and how a batter or bowler performs.
+The gold layer has the following views:
+- Match-Impact-Leaderboard: This aims to calculate the impact a player had on the match.
 
 ## Test Plan
-Below is the test plan I will execute after loading my data into the silver layer before I proceed to the gold layer. This will ensure data cleansing has been completed successfully and avoid any issues in the future for data analysis.
+Below is the test plan I will execute after loading my data into the silver layer, before I proceed to the gold layer. This will ensure data cleansing has been completed successfully and avoid any issues in the future for data analysis.
 
 | Test ID | Test Table | Column Being Tested | Test Description | Expected Outcome | Test Category |
 | :--- | :--- | :--- | :--- | :--- | :--- |
